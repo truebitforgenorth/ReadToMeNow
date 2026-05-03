@@ -10,6 +10,9 @@ import {
   setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const SESSION_SETS_KEY = "studylift-session-flashcard-sets";
+const LOCAL_SETS_KEY = "studylift-local-flashcard-sets";
+
 function stripLead(text, pattern) {
   return text.replace(pattern, "").trim();
 }
@@ -154,6 +157,30 @@ function cloneCards(cards) {
   }));
 }
 
+function readLocalSets() {
+  try {
+    const sessionRaw = window.sessionStorage.getItem(SESSION_SETS_KEY);
+    if (sessionRaw) {
+      const sessionParsed = JSON.parse(sessionRaw);
+      return Array.isArray(sessionParsed) ? sessionParsed : [];
+    }
+
+    const raw = window.localStorage.getItem(LOCAL_SETS_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalSets(sets) {
+  window.sessionStorage.setItem(SESSION_SETS_KEY, JSON.stringify(sets));
+}
+
 function makeButton(label, className, dataset = {}) {
   const button = document.createElement("button");
   button.type = "button";
@@ -208,8 +235,41 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
     cards: [],
     currentSetId: null,
     savedSets: [],
-    unsubscribeSavedSets: null
+    unsubscribeSavedSets: null,
+    storageMode: "local"
   };
+
+  function isCloudMode() {
+    return Boolean(firebaseConfigured && auth && db && getCurrentUser());
+  }
+
+  function getActiveSets() {
+    return state.savedSets;
+  }
+
+  function loadLocalSets() {
+    state.savedSets = readLocalSets()
+      .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
+  }
+
+  function saveLocalSetRecord(record) {
+    const nextSets = readLocalSets();
+    const existingIndex = nextSets.findIndex((set) => set.id === record.id);
+
+    if (existingIndex >= 0) {
+      nextSets[existingIndex] = record;
+    } else {
+      nextSets.unshift(record);
+    }
+
+    writeLocalSets(nextSets);
+    loadLocalSets();
+  }
+
+  function deleteLocalSetRecord(setId) {
+    writeLocalSets(readLocalSets().filter((set) => set.id !== setId));
+    loadLocalSets();
+  }
 
   function setStatus(message) {
     flashcardStatus.textContent = message;
@@ -278,28 +338,25 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
 
   function renderSavedSets() {
     const user = getCurrentUser();
+    const activeSets = getActiveSets();
 
-    if (!firebaseConfigured) {
-      savedSetList.innerHTML = '<p class="empty-state">Firebase is not configured yet, so saved sets are currently unavailable.</p>';
-      accountStatus.textContent = "Configure Firebase";
-      return;
+    if (isCloudMode()) {
+      accountStatus.textContent = `Signed in as ${user.email}`;
+    } else if (firebaseConfigured) {
+      accountStatus.textContent = "Browser demo mode";
+    } else {
+      accountStatus.textContent = "Browser demo mode";
     }
 
-    if (!user) {
-      savedSetList.innerHTML = '<p class="empty-state">Log in to view saved flashcard decks.</p>';
-      accountStatus.textContent = "Log in to save sets";
-      return;
-    }
-
-    accountStatus.textContent = `Signed in as ${user.email}`;
-
-    if (!state.savedSets.length) {
-      savedSetList.innerHTML = '<p class="empty-state">No saved decks yet. Generate cards and press Save Set.</p>';
+    if (!activeSets.length) {
+      savedSetList.innerHTML = isCloudMode()
+        ? '<p class="empty-state">No saved decks yet. Generate cards and press Save Set.</p>'
+        : '<p class="empty-state">No demo decks yet. Generate cards and press Save Set.</p>';
       return;
     }
 
     savedSetList.innerHTML = "";
-    state.savedSets.forEach((set) => {
+    activeSets.forEach((set) => {
       const item = document.createElement("article");
       item.className = "saved-set-item";
 
@@ -333,7 +390,7 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
   }
 
   function loadSet(setId) {
-    const selected = state.savedSets.find((set) => set.id === setId);
+    const selected = getActiveSets().find((set) => set.id === setId);
     if (!selected) {
       setStatus("That saved set is no longer available.");
       return;
@@ -351,12 +408,12 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
 
   async function deleteSet(setId) {
     const user = getCurrentUser();
-    if (!user || !db) {
-      setStatus("Log in before deleting saved sets.");
-      return;
-    }
 
-    await deleteDoc(doc(db, "users", user.uid, "flashcardSets", setId));
+    if (isCloudMode()) {
+      await deleteDoc(doc(db, "users", user.uid, "flashcardSets", setId));
+    } else {
+      deleteLocalSetRecord(setId);
+    }
 
     if (state.currentSetId === setId) {
       state.currentSetId = null;
@@ -372,11 +429,14 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
       state.unsubscribeSavedSets = null;
     }
 
-    if (!user || !db) {
-      state.savedSets = [];
+    if (!firebaseConfigured || !auth || !db || !user) {
+      state.storageMode = "local";
+      loadLocalSets();
       renderSavedSets();
       return;
     }
+
+    state.storageMode = "cloud";
 
     const savedSetsQuery = query(
       collection(db, "users", user.uid, "flashcardSets"),
@@ -493,18 +553,6 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
   saveSetBtn.addEventListener("click", async () => {
     const user = getCurrentUser();
 
-    if (!firebaseConfigured || !auth || !db) {
-      setStatus("Firebase is not configured yet. Add your project keys first.");
-      openAuthModal();
-      return;
-    }
-
-    if (!user) {
-      setStatus("Log in before saving your flashcards.");
-      openAuthModal();
-      return;
-    }
-
     const trimmedCards = state.cards
       .map((card) => ({
         front: (card.front || "").trim(),
@@ -518,31 +566,52 @@ export function initFlashcards({ db, auth, firebaseConfigured, openAuthModal, ge
     }
 
     const title = setTitleInput.value.trim() || "Untitled Study Set";
-    const payload = {
-      title,
-      mode: generatorMode.value,
-      sourceText: notesInput.value.trim(),
-      cards: trimmedCards,
-      updatedAt: serverTimestamp(),
-      userId: user.uid
-    };
+    if (isCloudMode()) {
+      const cloudPayload = {
+        title,
+        mode: generatorMode.value,
+        sourceText: notesInput.value.trim(),
+        cards: trimmedCards,
+        updatedAt: serverTimestamp(),
+        userId: user.uid
+      };
 
-    if (state.currentSetId) {
-      await setDoc(doc(db, "users", user.uid, "flashcardSets", state.currentSetId), payload, { merge: true });
-      setStatus(`Updated "${title}".`);
+      if (state.currentSetId) {
+        await setDoc(doc(db, "users", user.uid, "flashcardSets", state.currentSetId), cloudPayload, { merge: true });
+        setStatus(`Updated "${title}".`);
+      } else {
+        const docRef = await addDoc(collection(db, "users", user.uid, "flashcardSets"), {
+          ...cloudPayload,
+          createdAt: serverTimestamp()
+        });
+        state.currentSetId = docRef.id;
+        setStatus(`Saved "${title}" to your library.`);
+      }
     } else {
-      const docRef = await addDoc(collection(db, "users", user.uid, "flashcardSets"), {
-        ...payload,
-        createdAt: serverTimestamp()
-      });
-      state.currentSetId = docRef.id;
-      setStatus(`Saved "${title}" to your library.`);
+      const now = new Date().toISOString();
+      const localRecord = {
+        id: state.currentSetId || `local-${Date.now()}`,
+        title,
+        mode: generatorMode.value,
+        sourceText: notesInput.value.trim(),
+        cards: trimmedCards,
+        updatedAt: now,
+        createdAt: now
+      };
+
+      state.currentSetId = localRecord.id;
+      saveLocalSetRecord(localRecord);
+      renderSavedSets();
+      setStatus(firebaseConfigured
+        ? `Saved "${title}" in this browser session. Log in if you want cloud sync.`
+        : `Saved "${title}" in this browser session.`);
     }
 
     currentDeckLabel.textContent = title;
   });
 
   renderCards();
+  loadLocalSets();
   renderSavedSets();
 
   return {

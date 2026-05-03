@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StudyLift Flashcards | Generate and Save College Study Sets</title>
-  <meta name="description" content="Generate flashcards from class notes, edit them, and save them to your account with Firebase." />
+  <meta name="description" content="Generate flashcards from class notes, edit them, and save them in-browser or to your account with Firebase." />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="StudyLift Flashcards" />
   <meta property="og:description" content="Paste notes, generate flashcards, and save your study sets." />
@@ -49,7 +49,7 @@
 
       <section class="wrap">
         <div class="card banner-card" id="firebaseBanner">
-          Add your Firebase project keys in <code>js/firebase-config.js</code> to enable login and saved flashcards.
+          Demo mode saves decks in the browser for quick client previews. Add Firebase later for account-based saving.
         </div>
       </section>
 
@@ -61,7 +61,7 @@
                 <p class="eyebrow">Build a Set</p>
                 <h2>Create a flashcard deck from your class material.</h2>
               </div>
-              <p class="section-copy">Generate first, tweak the cards, then save the set to your account.</p>
+              <p class="section-copy">Generate first, tweak the cards, then save the set in the browser or to an account later.</p>
             </div>
 
             <div class="input-grid">
@@ -118,8 +118,8 @@ A: The discomfort felt when holding conflicting beliefs."></textarea>
 
         <aside class="flashcards-sidebar">
           <div class="card stat-card">
-            <span class="stat-label">Account status</span>
-            <strong class="stat-value small-value" id="accountStatus">Log in to save sets</strong>
+            <span class="stat-label">Save mode</span>
+            <strong class="stat-value small-value" id="accountStatus">Browser demo mode</strong>
           </div>
 
           <div class="card stat-card">
@@ -135,7 +135,7 @@ A: The discomfort felt when holding conflicting beliefs."></textarea>
               </div>
             </div>
             <div class="saved-set-list" id="savedSetList">
-              <p class="empty-state">Log in to view saved flashcard decks.</p>
+              <p class="empty-state">No demo decks yet. Generate cards and press Save Set.</p>
             </div>
           </div>
         </aside>
@@ -165,8 +165,8 @@ A: The discomfort felt when holding conflicting beliefs."></textarea>
     <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <button class="close-button" id="closeAuthBtn" type="button" aria-label="Close authentication panel">&times;</button>
       <p class="eyebrow">Account</p>
-      <h2 id="authTitle">Log in to save study sets</h2>
-      <p class="auth-copy" id="authCopy">Use email and password to keep your flashcards tied to your account.</p>
+      <h2 id="authTitle">Log in to sync study sets</h2>
+      <p class="auth-copy" id="authCopy">Browser saving works without login. Use email and password only if you want cloud sync.</p>
       <form id="authForm">
         <div class="form-field" id="displayNameField">
           <label for="displayNameInput">Display name</label>

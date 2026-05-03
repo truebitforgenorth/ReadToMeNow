@@ -80,10 +80,10 @@ function closeAuthModal() {
 
 function applyAuthMode() {
   const isLogin = state.authMode === "login";
-  authTitle.textContent = isLogin ? "Log in to save study sets" : "Create an account for saved flashcards";
+  authTitle.textContent = isLogin ? "Log in to sync study sets" : "Create an account for cloud sync";
   authCopy.textContent = isLogin
-    ? "Use your email and password to open your saved flashcard library."
-    : "Create a simple student account so your flashcard sets stay tied to you.";
+    ? "Browser saving works without login. Use your email and password only if you want cloud sync."
+    : "Create a simple student account if you want saved flashcard sets tied to you across devices.";
   authSubmitBtn.textContent = isLogin ? "Log In" : "Create Account";
   modeToggleBtn.textContent = isLogin ? "Need an account?" : "Already have an account?";
   displayNameField.classList.toggle("hidden", isLogin);
@@ -100,8 +100,8 @@ function renderAuthState() {
   logoutBtn.classList.toggle("hidden", !user);
 
   if (!firebaseConfigured) {
-    userChip.textContent = "Firebase not set";
-    loginBtn.textContent = "Set Up Firebase";
+    userChip.textContent = "Demo mode";
+    loginBtn.classList.add("hidden");
     logoutBtn.classList.add("hidden");
     return;
   }
@@ -114,8 +114,6 @@ loginBtn.addEventListener("click", () => {
   applyAuthMode();
 
   if (!firebaseConfigured) {
-    openAuthModal();
-    setAuthMessage("Add your Firebase credentials in js/firebase-config.js first.", "is-error");
     return;
   }
 
@@ -177,9 +175,9 @@ authForm.addEventListener("submit", async (event) => {
 applyAuthMode();
 
 if (firebaseConfigured) {
-  setBanner("Firebase is connected. Users can log in and save flashcard sets.", true);
+  setBanner("Browser demo saving is active. Users can also log in for cloud sync.", true);
 } else {
-  setBanner("Add your Firebase project keys in js/firebase-config.js to enable login and saved flashcards.");
+  setBanner("Demo mode is active. Flashcard decks save in this browser session without login.");
 }
 
 renderAuthState();
