@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyLift Flashcards | Generate and Save College Study Sets</title>
+  <meta name="description" content="Generate flashcards from class notes, edit them, and save them to your account with Firebase." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="StudyLift Flashcards" />
+  <meta property="og:description" content="Paste notes, generate flashcards, and save your study sets." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css" />
+</head>
+<body data-page="flashcards">
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="wrap nav-bar">
+        <a class="brand" href="index.html">
+          <span class="brand-mark">SL</span>
+          <span>
+            <strong>StudyLift</strong>
+            <small>College study help</small>
+          </span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          <a href="index.html">Read Aloud</a>
+          <a class="active" href="flashcards.html">Flashcards</a>
+        </nav>
+
+        <div class="nav-actions">
+          <div class="user-chip" id="userChip">Guest mode</div>
+          <button class="button ghost" id="loginBtn" type="button">Log In</button>
+          <button class="button ghost hidden" id="logoutBtn" type="button">Log Out</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap compact-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Flashcard Generator</p>
+          <h1>Paste lecture notes and turn them into review cards you can save.</h1>
+          <p class="hero-text">Use term-definition lines, Q and A notes, or plain paragraphs. The generator will give you editable cards before you save anything.</p>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <div class="card banner-card" id="firebaseBanner">
+          Add your Firebase project keys in <code>js/firebase-config.js</code> to enable login and saved flashcards.
+        </div>
+      </section>
+
+      <section class="wrap flashcards-layout">
+        <div class="flashcards-main">
+          <div class="card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Build a Set</p>
+                <h2>Create a flashcard deck from your class material.</h2>
+              </div>
+              <p class="section-copy">Generate first, tweak the cards, then save the set to your account.</p>
+            </div>
+
+            <div class="input-grid">
+              <div class="form-field">
+                <label for="setTitleInput">Set title</label>
+                <input id="setTitleInput" type="text" placeholder="Biology 201 Chapter 3" />
+              </div>
+
+              <div class="form-field">
+                <label for="generatorMode">Generator mode</label>
+                <select id="generatorMode">
+                  <option value="auto">Auto detect</option>
+                  <option value="qa">Q and A notes</option>
+                  <option value="term">Term and definition</option>
+                  <option value="summary">Paragraph summary</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="notesInput">Source notes</label>
+              <textarea id="notesInput" class="study-textarea" placeholder="Examples:
+
+Photosynthesis: Process plants use to convert light into energy
+Mitochondria: Organelle that produces ATP
+
+or
+
+Q: What is cognitive dissonance?
+A: The discomfort felt when holding conflicting beliefs."></textarea>
+            </div>
+
+            <div class="button-row">
+              <button class="button primary" id="generateCardsBtn" type="button">Generate Cards</button>
+              <button class="button secondary" id="addBlankCardBtn" type="button">Add Blank Card</button>
+              <button class="button success-soft" id="saveSetBtn" type="button">Save Set</button>
+              <button class="button danger-soft" id="clearCardsBtn" type="button">Clear</button>
+            </div>
+
+            <p class="helper-text" id="flashcardStatus">No cards yet. Paste notes and generate a set.</p>
+          </div>
+
+          <div class="card">
+            <div class="cards-header">
+              <div>
+                <p class="eyebrow">Editor</p>
+                <h2>Your cards</h2>
+              </div>
+              <div class="cards-summary" id="cardsSummary">0 cards</div>
+            </div>
+            <div class="cards-grid" id="cardsGrid"></div>
+          </div>
+        </div>
+
+        <aside class="flashcards-sidebar">
+          <div class="card stat-card">
+            <span class="stat-label">Account status</span>
+            <strong class="stat-value small-value" id="accountStatus">Log in to save sets</strong>
+          </div>
+
+          <div class="card stat-card">
+            <span class="stat-label">Current deck</span>
+            <strong class="stat-value small-value" id="currentDeckLabel">Unsaved deck</strong>
+          </div>
+
+          <div class="card">
+            <div class="section-heading tight">
+              <div>
+                <p class="eyebrow">Saved Sets</p>
+                <h2>Your library</h2>
+              </div>
+            </div>
+            <div class="saved-set-list" id="savedSetList">
+              <p class="empty-state">Log in to view saved flashcard decks.</p>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="gfg-footer">
+      <div class="wrap gfg-footer-container">
+        <div class="gfg-footer-logo">
+          <img src="photos/TBFN2.png" alt="TrueBit Forge North LLC logo" />
+        </div>
+
+        <div class="gfg-footer-content">
+          <p class="gfg-footer-copy">StudyLift</p>
+          <p class="gfg-footer-ownership">Built by <strong>TrueBit Forge North LLC</strong>.</p>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="auth-modal hidden" id="authModal" aria-hidden="true">
+    <div class="auth-backdrop" id="authBackdrop"></div>
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="close-button" id="closeAuthBtn" type="button" aria-label="Close authentication panel">&times;</button>
+      <p class="eyebrow">Account</p>
+      <h2 id="authTitle">Log in to save study sets</h2>
+      <p class="auth-copy" id="authCopy">Use email and password to keep your flashcards tied to your account.</p>
+      <form id="authForm">
+        <div class="form-field" id="displayNameField">
+          <label for="displayNameInput">Display name</label>
+          <input id="displayNameInput" name="displayName" type="text" placeholder="Jordan Student" />
+        </div>
+        <div class="form-field">
+          <label for="emailInput">Email</label>
+          <input id="emailInput" name="email" type="email" placeholder="you@school.edu" required />
+        </div>
+        <div class="form-field">
+          <label for="passwordInput">Password</label>
+          <input id="passwordInput" name="password" type="password" placeholder="At least 6 characters" required />
+        </div>
+        <div class="auth-actions">
+          <button class="button primary" id="authSubmitBtn" type="submit">Create Account</button>
+          <button class="button secondary" id="modeToggleBtn" type="button">Already have an account?</button>
+        </div>
+      </form>
+      <p class="auth-message" id="authMessage"></p>
+    </div>
+  </div>
+
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/site.js"></script>
+</body>
+</html>
